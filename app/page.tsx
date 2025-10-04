@@ -2,9 +2,12 @@
 import { useState } from 'react';
 import FileUploadComponent from "./components/file-upload";
 import ChatComponent from "./components/chat";
+import { ToastContainer } from "../components/ui/toast";
+import { ToastProvider, useToastContext } from "./contexts/toast-context";
 
-export default function Home() {
+function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { toasts, removeToast } = useToastContext();
 
   return (
     <div
@@ -74,6 +77,15 @@ export default function Home() {
           <ChatComponent />
         </div>
       </div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }

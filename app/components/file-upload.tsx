@@ -1,10 +1,12 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Upload, FileText, Loader2, X } from 'lucide-react'
+import { useToastContext } from '../contexts/toast-context'
 
 interface UploadedFile {
     file: File
     uploading: boolean
+    path?: string
 }
 
 interface SavedFile {
@@ -12,11 +14,13 @@ interface SavedFile {
     size: number
     lastModified: number
     uploading: boolean
+    path?: string
 }
 
 const FileUploadComponent: React.FC = () => {
     const [files, setFiles] = useState<UploadedFile[]>([])
     const [isDragging, setIsDragging] = useState(false)
+    const { toast } = useToastContext()
 
     // Load files from localStorage on component mount
     useEffect(() => {
@@ -29,6 +33,7 @@ const FileUploadComponent: React.FC = () => {
                         lastModified: savedFile.lastModified,
                     }),
                     uploading: false, // Assume all saved files are already uploaded
+                    path: savedFile.path,
                 }))
                 setFiles(restoredFiles)
             } catch (error) {
@@ -45,6 +50,7 @@ const FileUploadComponent: React.FC = () => {
                 size: file.file.size,
                 lastModified: file.file.lastModified,
                 uploading: file.uploading,
+                path: file.path,
             }))
             localStorage.setItem('uploadedFiles', JSON.stringify(filesToSave))
         } else {
@@ -68,24 +74,31 @@ const FileUploadComponent: React.FC = () => {
             formData.append('pdf', file)
 
             try {
-                await fetch('http://localhost:8000/upload/pdf', {
+                const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/upload/pdf`, {
                     method: 'POST',
                     body: formData,
                 })
-                // mark as uploaded
-                setFiles((prev) =>
-                    prev.map((f) =>
-                        f.file.name === file.name ? { ...f, uploading: false } : f
+                const data = await response.json()
+                console.log(data)
+                
+                if (response.ok) {
+                    // mark as uploaded
+                    setFiles((prev) =>
+                        prev.map((f) =>
+                            f.file.name === file.name ? { ...f, uploading: false, path: data?.filePath || '' } : f
+                        )
                     )
-                )
+                    toast.success('Upload successful', `${file.name} has been uploaded successfully`)
+                } else {
+                    throw new Error(data.message || 'Upload failed')
+                }
             } catch (err) {
                 console.error('Upload error:', err)
-                // stop spinner even if error
+                // Remove file from state if upload fails
                 setFiles((prev) =>
-                    prev.map((f) =>
-                        f.file.name === file.name ? { ...f, uploading: false } : f
-                    )
+                    prev.filter((f) => f.file.name !== file.name)
                 )
+                toast.error('Upload failed', `Failed to upload ${file.name}. Please try again.`)
             }
         }
     }
@@ -116,15 +129,15 @@ const FileUploadComponent: React.FC = () => {
 
     return (
         <div
-            onDrop={handleDrop}
-            onDragOver={(e) => {
-                e.preventDefault()
-                setIsDragging(true)
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            className={`flex flex-col gap-3 flex-1 p-2 rounded-lg transition ${isDragging ? 'bg-slate-100 border-2 border-dashed border-slate-400' : ''
-                }`}
-        >
+                onDrop={handleDrop}
+                onDragOver={(e) => {
+                    e.preventDefault()
+                    setIsDragging(true)
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                className={`flex flex-col gap-3 flex-1 p-2 rounded-lg transition ${isDragging ? 'bg-slate-100 border-2 border-dashed border-slate-400' : ''
+                    }`}
+            >
             {/* Upload Box */}
             <div
                 onClick={handleBrowse}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ChevronDown, Trash2 } from 'lucide-react'
 import ReferenceViewer from './reference-dock-viewer'
+import MessageContent from './message-content'
 import { UserButton } from '@clerk/nextjs'
 
 interface IDocuments {
@@ -61,7 +62,7 @@ const ChatComponent: React.FC = () => {
         setIsTyping(true)
 
         try {
-            const response = await fetch(`http://localhost:8000/chat?message=${message}`)
+            const response = await fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/chat?message=${message}`)
             const data = await response.json()
 
             setMessages((prev) => [
@@ -163,14 +164,10 @@ const ChatComponent: React.FC = () => {
                             )}
 
                             <div className="max-w-[80%] flex flex-col gap-2">
-                                <div
-                                    className={`px-4 py-3 rounded-2xl shadow-sm ${isUser
-                                            ? 'bg-blue-600 text-white ml-auto'
-                                            : 'bg-white border border-slate-200 text-slate-900'
-                                        }`}
-                                >
-                                    {msg.content}
-                                </div>
+                                <MessageContent 
+                                    content={msg.content || ''} 
+                                    isUser={isUser} 
+                                />
 
                                 {/* TODO:Show references only for assistant messages */}
                                 {/* {msg.role === 'assistant' && msg.documents?.length ? (
@@ -213,7 +210,7 @@ const ChatComponent: React.FC = () => {
             {showScrollButton && (
                 <button
                     onClick={scrollToBottom}
-                    className="absolute bottom-20 right-6 p-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition"
+                    className="absolute z-50 bottom-20 right-6 p-2 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 transition"
                 >
                     <ChevronDown className="h-5 w-5" />
                 </button>
